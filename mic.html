@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASTAS - Mikrofon</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#071B32;color:#fff;font-family:Inter,system-ui,sans-serif;padding:16px;text-align:center}
+#orb{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#21C7D9,#087CA7 60%,#071B32);box-shadow:0 0 40px rgba(33,199,217,.45)}
+#orb.on{animation:p .7s ease-in-out infinite}@keyframes p{50%{transform:scale(1.15)}}
+#msg{min-height:24px;color:#9FB6C9}#txt{font-size:20px;min-height:30px}
+button{font:inherit;border:0;border-radius:999px;padding:12px 22px;background:#21C7D9;color:#071B32;cursor:pointer;display:none}
+</style></head><body>
+<div id="orb"></div><div id="txt"></div><div id="msg">Menyiapkan mikrofon…</div>
+<button id="again">Coba lagi</button>
+<script>
+const $=id=>document.getElementById(id);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function send(text,error){
+  try{ if(window.opener) window.opener.postMessage({type:'astas-speech',text:text||'',error:error||''},'*'); }catch(e){}
+}
+function done(text,error){
+  send(text,error);
+  $('msg').textContent=text?'Terkirim ke ASTAS. Jendela ini akan menutup.':(error||'Selesai.');
+  if(text){ setTimeout(function(){window.close();},400); }
+}
+function start(){
+  $('again').style.display='none';$('txt').textContent='';
+  if(!window.opener){$('msg').textContent='Halaman ini harus dibuka dari tombol mikrofon di ASTAS.';return;}
+  if(!SR){done('','Browser tidak mendukung pengenalan suara.');return;}
+  const r=new SR();r.lang='id-ID';r.interimResults=true;r.maxAlternatives=1;let final='';
+  r.onstart=function(){$('orb').className='on';$('msg').textContent='Silakan bicara…';};
+  r.onresult=function(e){let s='';for(const x of e.results){s+=x[0].transcript;if(x.isFinal)final=s;}$('txt').textContent=s;if(!final)final='';window._last=s;};
+  r.onerror=function(e){$('orb').className='';
+    if(e.error==='not-allowed'){$('msg').textContent='Izin mikrofon ditolak. Ketuk ikon gembok di address bar dan izinkan mikrofon.';send('','Izin mikrofon ditolak.');}
+    else if(e.error==='no-speech'){$('msg').textContent='Suara tidak terdengar.';}
+    else{$('msg').textContent='Mikrofon gagal: '+e.error;}
+    $('again').style.display='inline-block';};
+  r.onend=function(){$('orb').className='';const t=(final||window._last||'').trim();if(t)done(t);else if($('again').style.display==='none'){$('msg').textContent='Tidak ada suara yang dikenali.';$('again').style.display='inline-block';}};
+  try{r.start();}catch(e){$('msg').textContent='Mikrofon sedang dipakai.';$('again').style.display='inline-block';}
+}
+$('again').onclick=start;start();
+</script></body></html>
