@@ -15,6 +15,20 @@ button{font:inherit;border:0;border-radius:999px;padding:12px 22px;background:#2
 const $=id=>document.getElementById(id);
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const SILENCE_MS=2500, FIRST_MS=9000, MAX_MS=60000; // jeda diam sebelum dianggap selesai
+// Android mengirim hasil bertahap berulang ('ya', 'ya benar', 'ya benar 300'). Gabungkan tanpa duplikat.
+function merge(list){
+  const seg=[];
+  for(const raw of list){
+    const t=String(raw).trim();if(!t)continue;const lt=t.toLowerCase();let skip=false,cut=-1;
+    for(let k=seg.length-1;k>=0;k--){const s=seg[k].toLowerCase();
+      if(s===lt||s.startsWith(lt)){skip=true;break;}
+      if(lt.startsWith(s)){cut=k;break;}}
+    if(skip)continue;
+    if(cut>=0)seg.length=cut;
+    seg.push(t);
+  }
+  return seg.join(' ');
+}
 function send(text,error){try{if(window.opener)window.opener.postMessage({type:'astas-speech',text:text||'',error:error||''},'*');}catch(e){}}
 function start(){
   $('again').style.display='none';$('fin').style.display='none';$('txt').textContent='';
@@ -25,7 +39,7 @@ function start(){
   const stop=function(){try{r.stop();}catch(e){}};
   const arm=function(ms){clearTimeout(timer);timer=setTimeout(stop,ms);};
   r.onstart=function(){$('orb').className='on';$('msg').textContent='Silakan bicara… (jeda sebentar untuk selesai)';$('fin').style.display='inline-block';arm(FIRST_MS);hard=setTimeout(stop,MAX_MS);};
-  r.onresult=function(e){let s='';for(let i=0;i<e.results.length;i++)s+=e.results[i][0].transcript+' ';all=s.trim();$('txt').textContent=all;arm(SILENCE_MS);};
+  r.onresult=function(e){const L=[];for(let i=0;i<e.results.length;i++)L.push(e.results[i][0].transcript);all=merge(L);$('txt').textContent=all;arm(SILENCE_MS);};
   r.onerror=function(e){failed=true;$('orb').className='';$('fin').style.display='none';
     if(e.error==='not-allowed'){$('msg').textContent='Izin mikrofon ditolak. Ketuk ikon gembok di address bar dan izinkan mikrofon.';send('','Izin mikrofon ditolak.');}
     else if(e.error==='no-speech'){$('msg').textContent='Suara tidak terdengar.';}
