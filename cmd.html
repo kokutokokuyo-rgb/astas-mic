@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASTAS Mic</title>
+<style>
+body{margin:0;font-family:system-ui,sans-serif;background:#1e3a8a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:16px;box-sizing:border-box}
+button{width:150px;height:150px;border-radius:50%;border:6px solid #fff;background:#059669;color:#fff;font-size:20px;font-weight:900;cursor:pointer}
+button.on{background:#dc2626;animation:p 1.2s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(220,38,38,.6)}100%{box-shadow:0 0 0 30px rgba(220,38,38,0)}}
+#t{margin-top:20px;font-size:18px;font-weight:700;min-height:56px}
+small{opacity:.75;margin-top:10px}
+</style></head><body>
+<h2>🎙️ ASTAS Mic</h2>
+<button id="b" onclick="mulai()">BICARA</button>
+<div id="t">Tekan BICARA lalu ucapkan perintah.</div>
+<small>Biarkan jendela ini terbuka. Tekan BICARA tiap kali ingin memberi perintah.</small>
+<script>
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null;
+function mulai(){
+  var t=document.getElementById('t'),b=document.getElementById('b');
+  if(!SR){t.textContent='Browser tidak mendukung. Gunakan Chrome.';return;}
+  if(rec){try{rec.abort();}catch(e){}}
+  rec=new SR();rec.lang='id-ID';rec.interimResults=true;rec.maxAlternatives=1;
+  var final='';
+  rec.onstart=function(){b.classList.add('on');b.textContent='MENDENGAR';t.textContent='Silakan bicara...';};
+  rec.onresult=function(e){var s='';for(var i=0;i<e.results.length;i++){s+=e.results[i][0].transcript;if(e.results[i].isFinal)final=s;}t.textContent=s;};
+  rec.onerror=function(e){t.textContent=(e.error==='not-allowed')?'Mikrofon belum diizinkan. Klik ikon gembok di address bar, izinkan mikrofon.':'Tidak terdengar, coba lagi.';};
+  rec.onend=function(){
+    b.classList.remove('on');b.textContent='BICARA';
+    if(final){
+      if(window.opener&&!window.opener.closed){window.opener.postMessage({type:'astas',text:final},'*');t.textContent='Terkirim: '+final;}
+      else t.textContent='Aplikasi utama tidak ditemukan. Buka ulang dari tombol ASTAS.';
+    }
+  };
+  try{rec.start();}catch(e){}
+}
+</script></body></html>
