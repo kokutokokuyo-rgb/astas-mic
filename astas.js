@@ -1,6 +1,7 @@
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -11,10 +12,11 @@
       if(name === 'withSuccessHandler') return function(f){ return mk(f, fail); };
       if(name === 'withFailureHandler') return function(f){ return mk(ok, f); };
       return function(){
-        var args = Array.prototype.slice.call(arguments);
+        var args = Array.prototype.slice.call(arguments), ck = 'sff_c_' + name;
+        if(name === 'getBahanBaku'){ try{ var c = localStorage.getItem(ck); if(c && ok) ok(JSON.parse(c)); }catch(e){} }
         fetch(EXEC_URL, { method: 'POST', body: JSON.stringify({ fn: name, args: args }) })
           .then(function(r){ return r.json(); })
-          .then(function(j){ if(j.error) throw new Error(j.error); if(ok) ok(j.result); })
+          .then(function(j){ if(j.error) throw new Error(j.error); if(name === 'getBahanBaku'){ try{ localStorage.setItem(ck, JSON.stringify(j.result)); }catch(e){} } if(ok) ok(j.result); })
           .catch(function(e){ if(fail) fail({ message: e.message }); });
       };
     }});
@@ -214,21 +216,149 @@
     return out.join(' ').replace(/(\d+) koma (\d+)/g, '$1.$2').replace(/\d{1,3}(?:\.\d{3})+(?!\d)/g, x => x.replace(/\./g,''));
   }
 
+  /* ===== JARVIS: Pakan, Cuan, Edukasi, Kamera ===== */
+  function fillByWords(raw, fields){
+    const tl = raw.toLowerCase(), re = /\d+(?:\.\d+)?/g, used = new Set(); let m, last = 0;
+    while((m = re.exec(tl))){
+      const seg = N(tl.slice(last, m.index)); last = m.index + m[0].length;
+      let best = null, bs = 0;
+      fields.forEach(f => { if(!f.inp || used.has(f)) return; const sc = f.w.filter(w => seg.includes(w)).length; if(sc > bs){ bs = sc; best = f; } });
+      if(!best) best = fields.find(f => f.inp && !used.has(f) && f.inp.value === '');
+      if(!best) break;
+      best.inp.value = parseFloat(m[0]); used.add(best);
+    }
+  }
+  function runCuan(raw, t){
+    if(/lain|operasional|listrik|tenaga|obat|transport/.test(t) && /\d/.test(raw) && document.querySelectorAll('.c-val').length <= 2) addCuanRow();
+    const v = [...document.querySelectorAll('.c-val')], H = $('c-harga'), P = $('c-populasi'), B = $('c-bobot');
+    fillByWords(raw, [{inp:H,w:['harga','jual']},{inp:P,w:['populasi','ekor','hidup','jumlah']},{inp:B,w:['bobot','berat','gram']},
+      {inp:v[0],w:['pakan']},{inp:v[1],w:['benih','bibit']}].concat(v.slice(2).map(i => ({inp:i,w:['lain','operasional','listrik','tenaga','obat']}))));
+    if(H.value && P.value && B.value && (/hitung|cek|untung|laba|rugi|hasil/.test(t) || v.some(i => i.value))){ hitungCuan(); say($('res-cuan').innerText); return; }
+    const kurang = [[H,'harga jual'],[P,'populasi'],[B,'bobot panen']].filter(x => !x[0].value).map(x => x[1]);
+    say(kurang.length ? 'Tercatat. Sebutkan: ' + kurang.join(', ') + '.' : 'Tercatat. Sebutkan biaya pakan atau benih, lalu ucapkan hitung.');
+  }
+  function bahanCocok(t){ return DB_BAHAN.filter(b => b.p > 0 && N(b.n.replace(/\(.*\)/,'')).split(' ').filter(w => w.length > 2).every(w => t.includes(w))); }
+  function runPakan(raw, t){
+    const tambah = [];
+    bahanCocok(t).forEach(b => {
+      const sels = [...document.querySelectorAll('#bahan-container select')];
+      if(sels.some(se => se.options[se.selectedIndex].text.startsWith(b.n))) return;
+      let se = sels.find(x => x.value === '0');
+      if(!se){ tambahBarisBahan(); const a = document.querySelectorAll('#bahan-container select'); se = a[a.length - 1]; }
+      se.selectedIndex = [...se.options].findIndex(o => o.text.startsWith(b.n)); tambah.push(b.n);
+    });
+    if(/\d/.test(raw)) fillByWords(raw, [{inp:$('fp-target'),w:['protein','target']},{inp:$('fp-total-kg'),w:['total','produksi','kilo','kg','campuran']}]);
+    if(/hitung|racik|formulasi|proses/.test(t)){
+      const pil = [...document.querySelectorAll('#bahan-container select')].map(se => parseFloat(se.value)).filter(x => x > 0);
+      if(!$('fp-target').value || !$('fp-total-kg').value) return say('Sebutkan target protein dan total produksi dulu.');
+      if(!pil.some(x => x < 20) || !pil.some(x => x >= 20)) return say('Butuh minimal satu bahan energi dan satu bahan protein.');
+      prosesPakan();
+      return say([...document.querySelectorAll('#res-pakan-mandiri .rline .t')].map(e => e.innerText.replace(/\s+/g,' ')).join('. ') || 'Selesai.');
+    }
+    say((tambah.length ? 'Ditambahkan: ' + tambah.join(', ') + '. ' : '') + 'Sebutkan bahan, target protein, dan total produksi, lalu ucapkan hitung.');
+  }
+  function eduItems(){
+    const out = [];
+    document.querySelectorAll('#sec-edukasi details.ac').forEach(d => {
+      const sec = N(d.querySelector('summary').textContent);
+      out.push({d, it:null, title:sec, txt:[...d.querySelectorAll('.it b')].map(b => b.textContent).join(', ')});
+      d.querySelectorAll('.it').forEach(it => out.push({d, it, title:N(it.querySelector('b').textContent) + ' ' + sec, txt:it.querySelector('p').textContent}));
+    });
+    return out;
+  }
+  function eduFind(t){
+    const ws = t.split(' ').filter(w => w.length > 3 && !/^(buka|bacakan|tampilkan|materi|tentang|edukasi)$/.test(w));
+    let best = null, bs = 0;
+    eduItems().forEach(x => {
+      const kt = x.title.split(' ');
+      const sc = ws.filter(w => x.title.includes(w) || (w.length > 5 && kt.some(k => lev(k, w) <= 1))).length;
+      if(sc > bs || (sc === bs && sc > 0 && x.it && !best.it)){ bs = sc; best = x; }
+    });
+    return best ? {x:best, score:bs} : null;
+  }
+  function runEdu(t){
+    const f = eduFind(t);
+    if(!f){ say('Materi belum ditemukan. Sebut judulnya, misalnya kultur daphnia.'); return; }
+    document.querySelectorAll('#sec-edukasi details').forEach(d => { d.open = (d === f.x.d); });
+    (f.x.it || f.x.d).scrollIntoView({behavior:'smooth', block:'start'});
+    say(f.x.it ? f.x.it.querySelector('b').textContent + '. ' + f.x.txt : 'Berisi: ' + f.x.txt);
+  }
+  /* Kamera Iwak Lens tanpa sentuhan */
+  let camStream = null;
+  function lensClose(){ if(camStream) camStream.getTracks().forEach(x => x.stop()); camStream = null; const v = $('astas-cam'); if(v) v.style.display = 'none'; }
+  async function lensOpen(){
+    if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ openLensChooser(); return; }
+    try{ camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }catch(e){ say('Kamera belum diizinkan. Buka Iwak Lens lewat tombol.'); return; }
+    let v = $('astas-cam');
+    if(!v){ v = document.createElement('video'); v.id = 'astas-cam'; v.autoplay = true; v.playsInline = true; v.muted = true;
+      v.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:94;background:#000'; v.onclick = lensShot; document.body.appendChild(v); }
+    v.srcObject = camStream; v.style.display = 'block'; say('Kamera siap. Ucapkan ambil foto.');
+  }
+  function lensShot(){
+    const v = $('astas-cam'); if(!v || !camStream || !v.videoWidth) return false;
+    const c = document.createElement('canvas'), sc = Math.min(1, 1000 / v.videoWidth);
+    c.width = v.videoWidth * sc; c.height = v.videoHeight * sc; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const d = c.toDataURL('image/jpeg', .75); lensClose();
+    $('modal-content').innerHTML = '<div style="text-align:center;padding:20px 0"><div class="spin"></div><b style="color:#312e81">Iwak Lens sedang menganalisa...</b></div>';
+    $('result-modal').classList.remove('hidden');
+    google.script.run.withSuccessHandler(r => { $('modal-content').innerHTML = formatAiText(r.message); lastAiText = r.message; say(r.message); })
+      .withFailureHandler(e => { $('modal-content').innerHTML = '<p style="color:#dc2626;font-weight:800">⚠️ ' + escapeHtml(e.message || String(e)) + '</p>'; })
+      .processIwakAI(d, 'foto_lks.jpg');
+    return true;
+  }
+
+  /* ===== TAB CATAT (ASTAS pencatatan, dimuat dari catat.html di halaman yang sama) ===== */
+  const CATAT_START = /^(catat|catatan|daftarkan|sampling|mulai batch|pindahkan benih|ingatkan|buat pengingat|laba rugi|kondisi kolam|performa kolam|bagaimana (batch|kondisi)|cek peringatan|kegiatan saya|(buka |tampilkan )?(dashboard|siklus|hitung ikan))/;
+  (function(){
+    const nav = document.getElementById('nav'), wrap = document.querySelector('#main .wrap');
+    if(!nav || !wrap || document.getElementById('sec-catat')) return;
+    nav.insertAdjacentHTML('beforeend', '<button data-s="catat" onclick="go(\'catat\')"><span class="ic">📝</span>Catat</button>');
+    wrap.insertAdjacentHTML('beforeend', '<section class="sec" id="sec-catat"><iframe id="astas-catat" title="ASTAS Catat" allow="microphone; camera" style="width:100%;border:0;border-radius:16px;background:#071B32;height:calc(100dvh - var(--hh) - var(--navh) - var(--sab) - 40px)"></iframe></section>');
+    const baseGo = window.go;
+    window.go = function(sec){ baseGo(sec); if(sec === 'catat') catatLoad(); };
+  })();
+  function catatLoad(cb){
+    const f = $('astas-catat'); if(!f) return;
+    if(f.dataset.ready){ if(cb) cb(f); return; }
+    if(cb) f._cb = (f._cb || []).concat(cb);
+    if(!f.dataset.loading){
+      f.dataset.loading = '1';
+      f.onload = () => { f.dataset.ready = '1'; setTimeout(() => { (f._cb || []).forEach(c => c(f)); f._cb = []; }, 500); };
+      f.src = 'catat.html';
+    }
+  }
+  function catatSend(raw, t){
+    go('catat');
+    status('Dikirim ke ASTAS Catat: ' + raw);
+    catatLoad(f => { try{ f.contentWindow.astasVoice(raw); }catch(e){ status('Halaman Catat belum siap. Coba lagi.'); } });
+  }
+
   const NAV = /^(buka|bukakan|pindah|pindahkan|ganti|ke|kembali|menu|tab|rumus|kalkulator|halaman|tampilkan|pergi|beranda)\b/;
 
   window.astasRun = function(raw){
     raw = (raw || '').trim(); if(!raw) return;
     raw = angka(raw);
+    raw = raw.replace(/^(hai |hei |hey |halo |oke )?(astas|asta)\b[\s,.:]*/i, '');
+    if(!raw){ say('Ya, saya mendengarkan.'); return; }
     $('astas-in').value = raw;
     const t = fixT(N(raw));
-    if(/iwak lens|kamera|foto/.test(t)){ openLensChooser(); status('Iwak Lens dibuka.'); return; }
+    if(camStream && /ambil|jepret|foto|potret|capture/.test(t)){ lensShot(); return; }
+    if(camStream && /batal|tutup|kembali/.test(t)){ lensClose(); say('Kamera ditutup.'); return; }
+    if(/galeri|upload|unggah/.test(t)){
+      openLensChooser();
+      const g = document.querySelector('#lens-choice-modal .opt.g'); if(g){ g.style.outline = '4px solid #fbbf24'; setTimeout(() => { g.style.outline = ''; }, 8000); }
+      say('Iwak Lens dibuka. Ketuk Upload dari Galeri di layar.'); return;
+    }
+    if(/ambil foto|kamera|jepret|potret/.test(t)){ try{ closeLensChooser(); }catch(e){} lensOpen(); return; }
+    if(/iwak lens|\blens\b|foto|gambar/.test(t)){ openLensChooser(); say('Iwak Lens dibuka. Ucapkan ambil foto untuk kamera, atau ketuk Upload dari Galeri.'); return; }
     if(/dengar|bacakan|baca jawaban/.test(t)){ bacakanJawaban(); return; }
-    if(/^(tutup|keluar)/.test(t)){ tutupModal(); toggleChat(false); astasClose(); return; }
+    if(/^(tutup|keluar)/.test(t)){ lensClose(); tutupModal(); toggleChat(false); astasClose(); return; }
     if(/^(buka |bukakan |tampilkan )?(iwak ai|chat)$/.test(t)){ toggleChat(true); say('Iwak AI dibuka. Silakan sebutkan pertanyaanmu.'); return; }
     if(document.body.classList.contains('chat-open') && !NAV.test(t) && !/^(tanya|tanyakan)/.test(t)){ quickAsk(raw); return; }
     const tanya = t.match(/^(?:tanya|tanyakan)(?: iwak ai| ke iwak ai)?\s+(.+)/);
     if(tanya){ astasClose(); quickAsk(raw.replace(/^\S+\s*(iwak ai\s*)?/i,'')); return; }
 
+    if(CATAT_START.test(t) || /^(buka |bukakan )?(catat|pencatatan)$/.test(t) || ($('sec-catat') && $('sec-catat').classList.contains('on') && !NAV.test(t))){ catatSend(raw, t); return; }
     const calX = CAL.find(c => c[1].test(t));
     if(calcOpen() && /^(kembali|daftar)/.test(t)){ closeCalc(); say('Kembali ke daftar rumus.'); return; }
 
@@ -240,6 +370,14 @@
     }
     /* FOKUS: tab penyakit terbuka */
     if($('sec-penyakit').classList.contains('on') && !pindah && !calX){ runDisease(t, raw); return; }
+    if(!pindah){
+      if($('sec-pakan').classList.contains('on')){ runPakan(raw, t); return; }
+      if($('sec-cuan').classList.contains('on')){ runCuan(raw, t); return; }
+      if($('sec-edukasi').classList.contains('on')){ runEdu(t); return; }
+    }
+    if(!calX && bahanCocok(t).length){ go('pakan'); runPakan(raw, t); return; }
+    const ef = eduFind(t);
+    if(!calX && ef && ef.score >= 2 && NAV.test(t)){ go('edukasi'); runEdu(t); return; }
 
     if(/penyakit|diagnosa|diagnosis|gejala|sakit/.test(t) || (IKAN.some(x => x[1].test(t)) && /bintik|luka|kumis|insang|mata|sirip|perut|badan|sisik|kutu|jamur/.test(t) && !calX)){ runDisease(t, raw); return; }
 
