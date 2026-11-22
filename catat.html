@@ -50,7 +50,7 @@
     h = rep(h, "d.className='m '+cls;d.textContent=t;",
       "d.className='m '+cls;d.textContent=/^b/.test(cls)?String(t).replace(/\\*\\*|__/g,'').replace(/^\\s*\\*\\s+/gm,'\\u2022 '):t;", miss, 'add');
     h = rep(h, '</head>', CSS + '</head>', miss, 'css');
-    var i = h.lastIndexOf('</script>');
+    var i = h.lastIndexOf('<\/script>');
     if(i < 0) miss.push('script'); else h = h.slice(0, i) + TAIL + h.slice(i);
     return h;
   }
