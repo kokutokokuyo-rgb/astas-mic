@@ -83,6 +83,19 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 .chip.ok{background:rgba(22,160,133,.22);color:#7ee0c6}.chip.warn{background:rgba(230,162,60,.22);color:#f4c57a}
 .alert.inf{border-left-color:#9FB6C9}.trow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #12385c}
 #life{display:none;flex:1;overflow-y:auto;padding:8px 16px}.krow{font-size:13px;color:#cfe1ee;padding:6px 0;border-top:1px solid #12385c}
+:root{--navy:#eef2f8;--card:#ffffff;--txt:#0f172a;--mut:#64748b;--aqua:#2563eb;--cyan:#0ea5e9;--ok:#15803d;--warn:#d97706;--bad:#dc2626}
+body{background:#eef2f8}
+label:has(#hf){display:none}
+.u,.act,.yes,#mic{color:#fff!important}
+.m.b{border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+button{border:1px solid #e2e8f0}.u,.act,.yes,#mic{border-color:transparent}
+#txt,.in{border-color:#cbd5e1}
+th,td,.krow,.trow{border-color:#e2e8f0}.krow,.trow{color:#334155}
+#ccv{background:#e2e8f0}
+#avatar .bgc{fill:#e0f2fe;stroke:#0ea5e9}
+.chip{background:#e2e8f0;color:#334155}.chip.ok{background:#dcfce7;color:#166534}.chip.warn{background:#ffedd5;color:#9a3412}
+.alert{background:#fff7ed;color:#7c2d12}
+#mic.on{background:var(--bad)}
 </style></head><body>
 <div id="splash"><div id="sorb"></div><h1>ASTAS</h1><small>Aquatic Smart Technology Assistant System</small><div id="sbar"><i></i></div><div id="sst">Menyiapkan ASTAS…</div>
 <div id="sbtn"><button id="go" class="yes">Mulai</button><button id="sguide">Petunjuk penggunaan</button></div></div>
@@ -378,4 +391,8 @@ window.astasVoice=function(t){const s=String(t).toLowerCase();
  if(/^(buka |tampilkan )?siklus/.test(s)){show('life');return;}
  if(/^(buka |tampilkan )?hitung ikan/.test(s)){show('cnt');return;}
  show('chat');if(!busy)ask(t);};
+ if(window.parent!==window&&window.parent.astasOpen){
+ $('mic').onclick=()=>window.parent.astasOpen();
+ setInterval(()=>{try{$('mic').classList.toggle('on',!!window.parent.__astasIsOn());}catch(e){}},700);
+}
 </script></body></html>
