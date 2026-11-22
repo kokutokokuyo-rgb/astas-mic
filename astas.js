@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -313,7 +313,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     const nav = document.getElementById('nav'), wrap = document.querySelector('#main .wrap');
     if(!nav || !wrap || document.getElementById('sec-catat')) return;
     nav.insertAdjacentHTML('beforeend', '<button data-s="catat" onclick="go(\'catat\')"><span class="ic">📝</span>Catat</button>');
-    wrap.insertAdjacentHTML('beforeend', '<section class="sec" id="sec-catat"><iframe id="astas-catat" title="ASTAS Catat" allow="microphone; camera" style="width:100%;border:0;border-radius:16px;background:#071B32;height:calc(100dvh - var(--hh) - var(--navh) - var(--sab) - 40px)"></iframe></section>');
+    wrap.insertAdjacentHTML('beforeend', '<section class="sec" id="sec-catat"><iframe id="astas-catat" title="ASTAS Catat" allow="microphone; camera" style="width:100%;border:0;border-radius:16px;background:#eef2f8;height:calc(100dvh - var(--hh) - var(--navh) - var(--sab) - 40px)"></iframe></section>');
     const baseGo = window.go;
     window.go = function(sec){ baseGo(sec); if(sec === 'catat') catatLoad(); };
   })();
@@ -338,6 +338,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
   window.astasRun = function(raw){
     raw = (raw || '').trim(); if(!raw) return;
     raw = angka(raw);
+    const woke = /^(hai |hei |hey |halo |oke )?(astas|asta)\b/i.test(raw);
     raw = raw.replace(/^(hai |hei |hey |halo |oke )?(astas|asta)\b[\s,.:]*/i, '');
     if(!raw){ say('Ya, saya mendengarkan.'); return; }
     $('astas-in').value = raw;
@@ -358,7 +359,13 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     const tanya = t.match(/^(?:tanya|tanyakan)(?: iwak ai| ke iwak ai)?\s+(.+)/);
     if(tanya){ astasClose(); quickAsk(raw.replace(/^\S+\s*(iwak ai\s*)?/i,'')); return; }
 
-    if(CATAT_START.test(t) || /^(buka |bukakan )?(catat|pencatatan)$/.test(t) || ($('sec-catat') && $('sec-catat').classList.contains('on') && !NAV.test(t))){ catatSend(raw, t); return; }
+    const inCatat = $('sec-catat') && $('sec-catat').classList.contains('on') && !NAV.test(t);
+    if(CATAT_START.test(t) || /^(buka |bukakan )?(catat|pencatatan)$/.test(t)){ catatSend(raw, t); return; }
+    if(inCatat){
+      if(woke || t.split(' ').length >= 3 || /^(ya|iya|tidak|batal|jangan|simpan|oke|setuju|lanjut)\b/.test(t)) catatSend(raw, t);
+      else status('Diabaikan (terlalu pendek): "' + raw + '". Awali dengan "ASTAS" bila itu perintah.');
+      return;
+    }
     const calX = CAL.find(c => c[1].test(t));
     if(calcOpen() && /^(kembali|daftar)/.test(t)){ closeCalc(); say('Kembali ke daftar rumus.'); return; }
 
@@ -455,6 +462,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
       try{ recN.start(); }catch(e){}
     };
     window.__astasPause = p => { paused = p; if(p){ try{ recN && recN.abort(); }catch(e){} } else if(on) setTimeout(startN, 500); ui(); };
+    window.__astasIsOn = () => on;
     window.astasOpen = window.astasListen = function(){
       on = !on; paused = false; ui();
       if(on){ startN(); status('🎙️ ASTAS standby aktif. Ucapkan perintah.'); try{ navigator.wakeLock && navigator.wakeLock.request('screen'); }catch(e){} }
