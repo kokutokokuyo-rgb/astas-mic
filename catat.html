@@ -96,6 +96,13 @@ th,td,.krow,.trow{border-color:#e2e8f0}.krow,.trow{color:#334155}
 .chip{background:#e2e8f0;color:#334155}.chip.ok{background:#dcfce7;color:#166534}.chip.warn{background:#ffedd5;color:#9a3412}
 .alert{background:#fff7ed;color:#7c2d12}
 #mic.on{background:var(--bad)}
+body{max-width:none}
+header>div:first-child small{display:none}
+#orb{width:84px!important;height:84px!important}
+#stage{padding:0 16px}
+#state{margin:2px 0 0;font-size:12px}
+header{padding:8px 16px}
+.m{max-width:80%}
 </style></head><body>
 <div id="splash"><div id="sorb"></div><h1>ASTAS</h1><small>Aquatic Smart Technology Assistant System</small><div id="sbar"><i></i></div><div id="sst">Menyiapkan ASTAS…</div>
 <div id="sbtn"><button id="go" class="yes">Mulai</button><button id="sguide">Petunjuk penggunaan</button></div></div>
@@ -118,7 +125,7 @@ let hist=[],state='idle',rec=null,handsFree=false,busy=false;
 const LBL={idle:'Siap',listening:'Mendengarkan…',processing:'Memproses…',speaking:'Berbicara…',error:'Gangguan'};
 function setState(s){state=s;$('orb').className=s==='idle'?'':s;$('state').textContent=LBL[s]||'';}
 function toast(t,ms=3000){const bad=/gagal|ditolak|diblokir|error|tidak/i.test(t),ok=/berhasil|dibuat|dihapus|selesai|tersimpan|aktif/i.test(t);popup({icon:bad?'⚠️':ok?'✅':'ℹ️',text:t,auto:ms});}
-function add(t,cls){$('empty')&&($('empty').remove());document.body.classList.add('chatting');const d=document.createElement('div');d.className='m '+cls;d.textContent=t;$('log').appendChild(d);$('log').scrollTop=1e9;return d;}
+function add(t,cls){$('empty')&&($('empty').remove());document.body.classList.add('chatting');const d=document.createElement('div');d.className='m '+cls;d.textContent=/^b/.test(cls)?t.replace(/\*\*|__|/g,’’).replace(/^\s**\s+/gm,’• ‘):t;$(‘log’).appendChild(d)`;$('log').scrollTop=1e9;return d;}
 // --- Suara keluar ---
 function clean(t){return t.replace(/[*_`#>|]/g,' ').replace(/\s+/g,' ').trim();}
 function speak(t){return new Promise(res=>{if(!('speechSynthesis' in window)||!$('spk').checked){res();return;}
@@ -395,4 +402,5 @@ window.astasVoice=function(t){const s=String(t).toLowerCase();
  $('mic').onclick=()=>window.parent.astasOpen();
  setInterval(()=>{try{$('mic').classList.toggle('on',!!window.parent.__astasIsOn());}catch(e){}},700);
 }
+if(/^(catat|catatan|mencatat)$/.test(s)){show('chat');const m='Silakan sebutkan yang ingin dicatat, misalnya: catat pakan kolam 1 sebanyak 2 kilogram.';add(m,'b');speak(m);return;}                    
 </script></body></html>
