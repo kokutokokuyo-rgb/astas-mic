@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -333,6 +333,48 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     catatLoad(f => { try{ f.contentWindow.astasVoice(raw); }catch(e){ status('Halaman Catat belum siap. Coba lagi.'); } });
   }
 
+  /* ===== SIMPAN HASIL HITUNG SFF KE CATATAN ASTAS ===== */
+  function catatMsg(k){
+    const v = [...document.querySelectorAll('#calc-inputs input')].map(i => parseFloat(i.value));
+    const id = (typeof currentType !== 'undefined') ? currentType : '', f = n => Math.round(n * 100) / 100;
+    if(id === 'abw' && v[1]) return 'Sampling ' + k + ' bobot rata-rata ' + f(v[0] / v[1]) + ' gram';
+    if(id === 'adg' || id === 'sgr') return 'Sampling ' + k + ' bobot rata-rata ' + v[0] + ' gram';
+    if(id === 'pakan-h') return 'Catat pakan ' + k + ' sebanyak ' + f(v[0] * v[1] / 100) + ' kilogram';
+    if(id === 'air') return 'Catat kualitas air ' + k + ': suhu ' + v[0] + ' derajat Celsius, pH ' + v[1] + ', oksigen terlarut ' + v[2] + ' mg/L';
+    return '';
+  }
+  function cuanMsg(k){
+    const H = +$('c-harga').value, P = +$('c-populasi').value, B = +$('c-bobot').value, kg = P * B / 1000;
+    const v = [...document.querySelectorAll('.c-val')].map(i => +i.value || 0), out = [];
+    if(P && B) out.push('Panen ' + k + ' ' + P + ' ekor total ' + (Math.round(kg * 100) / 100) + ' kilogram');
+    if(H && kg) out.push('pendapatan ' + Math.round(kg * H) + ' rupiah dari penjualan panen ' + k);
+    if(v[0]) out.push('biaya variabel ' + Math.round(v[0]) + ' rupiah untuk pakan ' + k);
+    if(v[1]) out.push('biaya variabel ' + Math.round(v[1]) + ' rupiah untuk benih ' + k);
+    v.slice(2).forEach(x => { if(x) out.push('biaya variabel ' + Math.round(x) + ' rupiah operasional ' + k); });
+    return out.length ? 'Catat sekaligus: ' + out.join('; ') : '';
+  }
+  function saveToCatat(hint, byVoice){
+    let k = (hint || '').trim();
+    if(!k){ try{ k = localStorage.getItem('sff_kolam') || ''; }catch(e){} }
+    if(!k && byVoice){ say('Sebutkan nama kolamnya, misalnya: simpan ke catatan kolam 1.'); return; }
+    if(!hint && !byVoice){ k = (prompt('Nama kolam untuk catatan (mis. kolam 1):', k) || '').trim(); }
+    if(!k) return;
+    try{ localStorage.setItem('sff_kolam', k); }catch(e){}
+    const msg = $('sec-cuan').classList.contains('on') ? cuanMsg(k) : catatMsg(k);
+    if(!msg){ status('Hasil ini dihitung otomatis oleh ASTAS dari catatan kolam, jadi yang disimpan adalah data mentahnya (pakan, kematian, sampling, panen).'); return; }
+    catatSend(msg, N(msg));
+  }
+  (function(){
+    const bc = window.calculateNow, bh = window.hitungCuan, SAVABLE = ['abw','adg','sgr','pakan-h','air'];
+    const mkBtn = box => {
+      if(box.querySelector('.astas-save')) return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm astas-save'; b.textContent = '💾 Simpan ke catatan ASTAS';
+      b.onclick = () => saveToCatat('', false); box.appendChild(b);
+    };
+    if(bc) window.calculateNow = function(){ bc.apply(this, arguments); const box = $('calc-res'); if(box && !box.classList.contains('hidden') && SAVABLE.indexOf(currentType) >= 0) mkBtn(box); };
+    if(bh) window.hitungCuan = function(){ bh.apply(this, arguments); const box = $('res-cuan'); if(box && !box.classList.contains('hidden')) mkBtn(box); };
+  })();
+
   const NAV = /^(buka|bukakan|pindah|pindahkan|ganti|ke|kembali|menu|tab|rumus|kalkulator|halaman|tampilkan|pergi|beranda)\b/;
 
   window.astasRun = function(raw){
@@ -359,6 +401,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     const tanya = t.match(/^(?:tanya|tanyakan)(?: iwak ai| ke iwak ai)?\s+(.+)/);
     if(tanya){ astasClose(); quickAsk(raw.replace(/^\S+\s*(iwak ai\s*)?/i,'')); return; }
 
+    if(/^(simpan|catat|masukkan)( hasil| ini| itu)?( ke| dalam)? (catatan|astas)/.test(t)){ const mk = t.match(/kolam\s+(\S+(?:\s+\S+)?)/); saveToCatat(mk ? 'kolam ' + mk[1] : '', true); return; }
     const inCatat = $('sec-catat') && $('sec-catat').classList.contains('on') && !NAV.test(t);
     if(CATAT_START.test(t) || /^(buka |bukakan )?(catat|pencatatan)$/.test(t)){ catatSend(raw, t); return; }
     if(inCatat){
