@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
+  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
