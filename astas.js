@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -375,6 +375,51 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(bh) window.hitungCuan = function(){ bh.apply(this, arguments); const box = $('res-cuan'); if(box && !box.classList.contains('hidden')) mkBtn(box); };
   })();
 
+  /* ===== PANDUAN PERINTAH SUARA + NAMA APLIKASI ===== */
+  const HELP = [
+    ['Pindah menu', ['buka hitung','buka penyakit lele bintik putih','buka pakan','buka cuan','buka edukasi','buka catat']],
+    ['Kalkulator', ['buka FCR','pakan lima puluh panen empat puluh','rumus nomor enam','hitung','kembali']],
+    ['Pakan mandiri', ['tambah tepung ikan lokal dan bungkil kedelai','target protein tiga puluh total seratus kilo hitung']],
+    ['Cuan', ['harga dua puluh lima ribu populasi lima ribu bobot seratus lima puluh gram','biaya pakan tiga juta hitung']],
+    ['Edukasi', ['buka kultur daphnia','buka hama dan penyakit larva']],
+    ['Iwak AI dan Iwak Lens', ['buka Iwak AI','tanya cara memijahkan lele','buka Iwak Lens','ambil foto','dari galeri','bacakan jawaban']],
+    ['Catat dengan ASTAS', ['catat pakan kolam 1 sebanyak 2 kilogram','daftarkan kolam 1 lele 2000 ekor bobot awal 5 gram','kondisi kolam saya','buka dashboard','laba rugi saya','ya','tidak']],
+    ['Simpan hasil hitung', ['simpan ke catatan kolam 1']]
+  ];
+  window.astasHelp = function(open){
+    let m = document.getElementById('astas-help');
+    if(!m){
+      m = document.createElement('div'); m.className = 'modal hidden'; m.id = 'astas-help';
+      m.onclick = ev => { if(ev.target === m) astasHelp(false); };
+      m.innerHTML = '<div class="mbox" style="max-width:560px"><div class="mh"><span>🎙️ PERINTAH SUARA ASTAS</span><button class="ibtn" aria-label="Tutup" onclick="astasHelp(false)">✕</button></div><div class="mc" id="astas-help-body"></div><div class="mf"><button style="background:#4f46e5" onclick="astasHelp(false)">TUTUP</button></div></div>';
+      document.body.appendChild(m);
+      const body = document.getElementById('astas-help-body');
+      const tip = document.createElement('p'); tip.style.cssText = 'margin:0 0 10px;font-size:13px;color:#475569';
+      tip.textContent = 'Ketuk salah satu contoh untuk mencobanya. Tombol ASTAS merah berarti standby mendengarkan; ketuk untuk mematikan di tempat bising. Awali kalimat dengan "ASTAS" agar lebih pasti.';
+      body.appendChild(tip);
+      HELP.forEach(g => {
+        const h = document.createElement('div'); h.style.cssText = 'font-weight:800;color:#312e81;margin:12px 0 6px;font-size:13px'; h.textContent = g[0]; body.appendChild(h);
+        const w = document.createElement('div'); w.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+        g[1].forEach(x => { const b = document.createElement('button'); b.type = 'button'; b.textContent = x;
+          b.style.cssText = 'border:1px solid #c7d2fe;background:#eef2ff;color:#312e81;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;text-align:left';
+          b.onclick = () => { astasHelp(false); astasRun(x); }; w.appendChild(b); });
+        body.appendChild(w);
+      });
+    }
+    m.classList.toggle('hidden', !open);
+  };
+  (function(){
+    document.title = 'Smart Fish Farmer with ASTAS';
+    const h1 = document.querySelector('.brand h1');
+    if(h1) h1.innerHTML = 'SMART FISH FARMER <span style="font-weight:600;opacity:.85;font-size:11px;letter-spacing:1px">with ASTAS</span>';
+    const hb = document.querySelector('.top .ibtn');
+    if(hb && !document.getElementById('astas-helpbtn')){
+      const b = document.createElement('button'); b.className = 'ibtn'; b.id = 'astas-helpbtn'; b.title = 'Perintah suara'; b.setAttribute('aria-label', 'Perintah suara'); b.textContent = '🎙️'; b.onclick = () => astasHelp(true);
+      const w = document.createElement('div'); w.style.cssText = 'display:flex;gap:8px';
+      hb.parentNode.insertBefore(w, hb); w.appendChild(b); w.appendChild(hb);
+    }
+  })();
+
   const NAV = /^(buka|bukakan|pindah|pindahkan|ganti|ke|kembali|menu|tab|rumus|kalkulator|halaman|tampilkan|pergi|beranda)\b/;
 
   window.astasRun = function(raw){
@@ -385,6 +430,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(!raw){ say('Ya, saya mendengarkan.'); return; }
     $('astas-in').value = raw;
     const t = fixT(N(raw));
+    if(/^(bantuan|panduan suara|perintah suara|cara pakai|apa yang bisa|apa saja yang bisa)/.test(t)){ astasHelp(true); say('Ini daftar perintah suara. Ketuk salah satu contoh untuk mencobanya.'); return; }
     if(camStream && /ambil|jepret|foto|potret|capture/.test(t)){ lensShot(); return; }
     if(camStream && /batal|tutup|kembali/.test(t)){ lensClose(); say('Kamera ditutup.'); return; }
     if(/galeri|upload|unggah/.test(t)){
@@ -395,7 +441,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(/ambil foto|kamera|jepret|potret/.test(t)){ try{ closeLensChooser(); }catch(e){} lensOpen(); return; }
     if(/iwak lens|\blens\b|foto|gambar/.test(t)){ openLensChooser(); say('Iwak Lens dibuka. Ucapkan ambil foto untuk kamera, atau ketuk Upload dari Galeri.'); return; }
     if(/dengar|bacakan|baca jawaban/.test(t)){ bacakanJawaban(); return; }
-    if(/^(tutup|keluar)/.test(t)){ lensClose(); tutupModal(); toggleChat(false); astasClose(); return; }
+    if(/^(tutup|keluar)/.test(t)){ astasHelp(false); lensClose(); tutupModal(); toggleChat(false); astasClose(); return; }
     if(/^(buka |bukakan |tampilkan )?(iwak ai|chat)$/.test(t)){ toggleChat(true); say('Iwak AI dibuka. Silakan sebutkan pertanyaanmu.'); return; }
     if(document.body.classList.contains('chat-open') && !NAV.test(t) && !/^(tanya|tanyakan)/.test(t)){ quickAsk(raw); return; }
     const tanya = t.match(/^(?:tanya|tanyakan)(?: iwak ai| ke iwak ai)?\s+(.+)/);
