@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8"><title>ASTAS</title></head>
-<body style="font-family:system-ui,sans-serif;padding:24px;color:#475569">Memuat ASTAS…
+<body><div id="ld" style="font-family:system-ui,sans-serif;padding:24px;color:#475569">Memuat ASTAS…</div>
 <script>
 /* catat.html: pemuat ASTAS Catat.
    Mengambil astas-index.html (salinan asli Index.html ASTAS, tanpa diubah), memasang semua penyesuaian
@@ -11,19 +11,26 @@
 
   var HEAD = '<script>window.GAS_EXEC=\'' + GAS + '\';if(\'serviceWorker\' in navigator)navigator.serviceWorker.register(\'sw.js\');<\/script><script src="gas-shim.js"><\/script>';
 
-  var CSS = '<style>' +
-    ':root{--navy:#eef2f8;--card:#ffffff;--txt:#0f172a;--mut:#64748b;--aqua:#2563eb;--cyan:#0ea5e9;--ok:#15803d;--warn:#d97706;--bad:#dc2626}' +
-    'body{background:#eef2f8;max-width:none}label:has(#hf){display:none}' +
-    '.u,.act,.yes,#mic{color:#fff!important}' +
-    '.m.b{border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.06)}' +
-    'button{border:1px solid #e2e8f0}.u,.act,.yes,#mic{border-color:transparent}' +
-    '#txt,.in{border-color:#cbd5e1}th,td,.krow,.trow{border-color:#e2e8f0}.krow,.trow{color:#334155}' +
-    '#ccv{background:#e2e8f0}#avatar .bgc{fill:#e0f2fe;stroke:#0ea5e9}' +
-    '.chip{background:#e2e8f0;color:#334155}.chip.ok{background:#dcfce7;color:#166534}.chip.warn{background:#ffedd5;color:#9a3412}' +
-    '.alert{background:#fff7ed;color:#7c2d12}#mic.on{background:var(--bad)}' +
-    'header>div:first-child small{display:none}#orb{width:84px!important;height:84px!important}' +
-    '#stage{padding:0 16px}#state{margin:2px 0 0;font-size:12px}header{padding:8px 16px}.m{max-width:80%}' +
-    '</style>';
+  var CSS = '<style>' + [
+    ':root{--navy:#f4f2ec;--card:#ffffff;--txt:#12201f;--mut:#5c6b69;--aqua:#0f766e;--cyan:#0f766e;--ok:#2f7d4f;--warn:#b45309;--bad:#c2410c}',
+    'body{background:#f4f2ec;max-width:none;font-family:Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.005em}',
+    'label:has(#hf){display:none}header{padding:10px 16px}h1{font-size:17px;font-weight:700;letter-spacing:-.01em}header>div:first-child small{display:none}',
+    '.u,.act,.yes,#mic{color:#fff!important}button{border:1px solid #e3dfd3}.u,.act,.yes,#mic{border-color:transparent}',
+    '#nav{gap:2px;padding:0 16px;border-bottom:1px solid #e3dfd3}#nav button{background:transparent!important;border:0;border-radius:0;border-bottom:2px solid transparent;padding:10px 14px;color:#5c6b69!important;font-weight:600}',
+    '#nav button.act{color:#0f766e!important;border-bottom-color:#0f766e}',
+    '.m{max-width:78%;font-size:15px}.u{background:#0f766e;border-radius:16px 16px 4px 16px}',
+    '.m.b{background:#fff;border:1px solid #e3dfd3;border-radius:16px 16px 16px 4px;box-shadow:none}',
+    '#txt{border-radius:14px;border-color:#d8d3c4}#send,#cam{border-radius:12px}#mic{border-radius:14px;background:#0f766e}#mic.on{background:#c2410c}',
+    '#quick button{border-radius:999px;background:#fff}',
+    '.pc,.card{background:#fff;border:1px solid #e3dfd3;border-radius:14px}.in{border-color:#d8d3c4}',
+    'th,td,.krow,.trow{border-color:#e3dfd3}.krow,.trow{color:#334155}#ccv{background:#e9e5d9}',
+    '.chip{background:#ece8dc;color:#334155}.chip.ok{background:#dcefe3;color:#14532d}.chip.warn{background:#fbead6;color:#92400e}.alert{background:#fff4e8;color:#7c2d12}',
+    '#avatar .bgc{fill:#e7f1ee;stroke:#0f766e}',
+    '#orb{width:104px!important;height:104px!important}#stage{padding:4px 16px}#state{margin:2px 0 0;font-size:12px}',
+    /* Saat percakapan berjalan: avatar mengecil ke kiri atas, di dalam header */
+    'body.chatting #stage{position:fixed;top:5px;left:12px;z-index:20;padding:0;width:auto}',
+    'body.chatting #orb{width:46px!important;height:46px!important}body.chatting #state{display:none}body.chatting header h1{margin-left:56px}'
+  ].join('') + '</style>';
 
   var TAIL =
     "$('splash').style.display='none';\n" +
@@ -62,6 +69,7 @@
     if(x.status !== 200) throw new Error('file ' + ORIGINAL + ' tidak ditemukan (HTTP ' + x.status + ')');
     var miss = [], html = patch(x.responseText, miss);
     if(miss.length) console.warn('catat.html: bagian tidak cocok dan dilewati:', miss.join(', '));
+    var ld = document.getElementById('ld'); if(ld) ld.parentNode.removeChild(ld);
     document.open(); document.write(html); document.close();
   }catch(e){
     document.body.innerHTML = '<p style="color:#b91c1c;font-weight:700">Gagal memuat ASTAS: ' + e.message + '</p><p>Pastikan file astas-index.html ada di repo (salinan Index.html ASTAS).</p>';

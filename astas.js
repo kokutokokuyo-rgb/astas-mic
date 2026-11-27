@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -564,4 +564,36 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
   window.addEventListener('message', e => {
     if(e.origin === MIC_ORIGIN && e.data && e.data.type === 'astas' && e.data.text){ $('astas-box').classList.remove('hidden'); astasRun(String(e.data.text)); }
   });
+})();
+
+/* ===== TEMA 2026: tema.css + ikon SVG (menggantikan emoji) ===== */
+(function(){
+  var lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = 'tema.css'; document.head.appendChild(lk);
+  var P = {
+    home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    calc:'<path d="M5 20V11M12 20V4M19 20v-6"/><path d="M3 20h18"/>',
+    steth:'<path d="M6 3v6a4 4 0 0 0 8 0V3"/><path d="M10 13v1a5 5 0 0 0 10 0v-2"/><circle cx="20" cy="10" r="2"/>',
+    bowl:'<path d="M4 11h16a8 8 0 0 1-16 0z"/><path d="M8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/>',
+    coin:'<circle cx="12" cy="12" r="9"/><path d="M14.5 9.2a3 3 0 0 0-5 1.6c0 3 5 1.5 5 4.4a3 3 0 0 1-5 1.6M12 6.5v1.8M12 15.7v1.8"/>',
+    book:'<path d="M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3z"/><path d="M21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z"/>',
+    note:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+    mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    spk:'<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+    cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    fish:'<path d="M2 12c3-4 7-6 11-5 2 .6 4 2 5 5-1 3-3 4.5-5 5-4 1-8-1-11-5z"/><path d="M18 12l4-4v8z"/><circle cx="8" cy="11" r=".8"/>',
+    egg:'<path d="M12 3c3.5 0 6 6 6 10a6 6 0 0 1-12 0c0-4 2.5-10 6-10z"/>'
+  };
+  var svg = function(n){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (P[n] || '') + '</svg>'; };
+  var SEC = {home:'home', hitung:'calc', penyakit:'steth', pakan:'bowl', cuan:'coin', edukasi:'book', catat:'note'};
+  document.querySelectorAll('#nav button[data-s]').forEach(function(b){ var ic = b.querySelector('.ic'); if(ic && SEC[b.dataset.s]) ic.innerHTML = svg(SEC[b.dataset.s]); });
+  document.querySelectorAll('.tile').forEach(function(t){
+    var o = t.getAttribute('onclick') || '', n = /besar/.test(o) ? 'calc' : /benih/.test(o) ? 'egg' : /penyakit/.test(o) ? 'steth' : /pakan/.test(o) ? 'bowl' : /cuan/.test(o) ? 'coin' : /edukasi/.test(o) ? 'book' : '';
+    var ti = t.querySelector('.ti'); if(ti && n) ti.innerHTML = svg(n);
+  });
+  document.querySelectorAll('.sec').forEach(function(sec){ var c = sec.querySelector('.sec-h .chip'), n = SEC[(sec.id || '').replace('sec-','')]; if(c && n) c.innerHTML = svg(n); });
+  var logo = document.querySelector('.logo'); if(logo) logo.innerHTML = svg('fish');
+  var hb = document.getElementById('astas-helpbtn'); if(hb) hb.innerHTML = svg('mic');
+  [['.fab.ai','fish'],['.fab.lens','cam'],['#astas-fab','mic']].forEach(function(x){ var f = document.querySelector(x[0]), sp = f && f.querySelector('span'); if(sp){ sp.className = 'ico'; sp.style.fontSize = ''; sp.innerHTML = svg(x[1]); } });
+  var li = document.getElementById('listen-icon');
+  if(li){ li.style.display = 'none'; li.insertAdjacentHTML('beforebegin', '<span class="ico">' + svg('spk') + '</span>'); }
 })();

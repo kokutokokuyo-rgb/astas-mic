@@ -1,0 +1,52 @@
+/* tema.css: tampilan Smart Fish Farmer with ASTAS (2026). Hapus baris <link> di astas.js untuk kembali ke tampilan lama. */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#f4f2ec;--card:#ffffff;--ink:#12201f;--muted:#5c6b69;--line:#e3dfd3;--pri:#0f5c5c;--pri2:#0f766e;--prisoft:#dff0ec;--acc:#e8a33d;--red:#c2410c;--green:#2f7d4f;--deep:#0c3b3d}
+body{font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",sans-serif;letter-spacing:-.005em}
+h1,h2,h3,.hero h2,.sec-h h2,.tile b,.dh{font-family:"Bricolage Grotesque",Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:-.02em}
+/* Header dengan motif penggaris ukur */
+.top{background:var(--deep);border-bottom:0;position:relative}
+.top:after{content:"";position:absolute;left:0;right:0;bottom:0;height:8px;pointer-events:none;
+ background-image:linear-gradient(90deg,rgba(255,255,255,.38) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.7) 1px,transparent 1px);
+ background-size:12px 5px,60px 8px;background-repeat:repeat-x;background-position:left bottom}
+.brand h1{font-size:16px;letter-spacing:-.01em}.brand p{letter-spacing:.14em;opacity:.7}
+.logo{width:30px;height:30px;display:grid;place-items:center;color:var(--acc)}.logo svg{width:28px;height:28px}
+.ibtn{border-radius:10px;background:rgba(255,255,255,.1)}.ibtn svg{width:20px;height:20px}
+/* Navigasi */
+.nav{background:var(--card);border-color:var(--line)}
+.nav button{color:var(--muted);font-weight:600}.nav button.on{color:var(--pri)}
+.nav .ic{display:grid;place-items:center;padding:5px 16px;border-radius:12px}.nav button.on .ic{background:var(--prisoft)}
+.nav svg{width:22px;height:22px}
+/* Beranda */
+.hero{background:var(--deep);border-radius:20px;box-shadow:none;color:#fff}
+.hero:after,.hero .fish{display:none}.hero h2{font-size:27px}
+.btn-w{border-radius:10px;font-weight:700}.btn-w.alt{background:rgba(255,255,255,.14)}
+.lbl{letter-spacing:.14em;color:var(--muted)}
+.tile{border-radius:16px;box-shadow:none;background:var(--card);transition:border-color .15s,transform .15s}
+.tile:hover{border-color:var(--pri2)}.tile:active{transform:scale(.98)}
+.tile .ti{border-radius:12px;background:var(--prisoft)!important;color:var(--pri)}.tile .ti svg{width:24px;height:24px}
+.tile span:last-child{color:var(--muted)}
+.sec-h .chip{border-radius:12px;background:var(--prisoft)!important;color:var(--pri)}.sec-h .chip svg{width:24px;height:24px}
+/* Kartu, tombol, hasil */
+.card{border-radius:16px;box-shadow:none}
+.btn{border:0;border-radius:12px;background:var(--pri);padding:14px;font-size:15px;font-weight:700;letter-spacing:.01em;text-transform:none}
+.btn:active{transform:scale(.99);border-bottom-width:0}.btn.red{background:var(--red)}.btn.green{background:var(--green)}
+.btn.ghost{background:transparent;color:var(--pri);border:1px dashed #9bc6bd}
+.res{border-radius:12px;border:1px solid #bfe0d9;border-left:1px solid #bfe0d9;background:var(--prisoft);color:var(--pri)}
+.res.red{background:#fdeee6;color:#7c2d12;border-color:#f6cdb8}.res.green{background:#e6f3ea;color:#14532d;border-color:#bfdcc9}
+.inp input,.inp select,.sel{border-width:1px;border-radius:10px;border-color:#d8d3c4}
+.inp input:focus,.inp select:focus{border-color:var(--pri2);box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.seg{background:#e9e5d9;border-radius:12px}.seg button.on{color:var(--pri);border-radius:9px}
+.citem{border-radius:12px;border-color:var(--line)}.citem .n{background:var(--prisoft);color:var(--pri);border-radius:8px}.citem.benih .n{background:#f6e7d3;color:#9a5b13}
+.citem.on{border-color:var(--pri2);background:#f0f8f6;box-shadow:none}
+.rumus{border-radius:8px;background:#efece2}.dh{color:var(--pri)}
+details.ac{border-radius:14px;box-shadow:none}details.ac summary{background:var(--card)!important}
+.foot{background:var(--deep);border-top:0;border-radius:16px}
+.modal .mh{background:var(--deep)}.mbox{border-radius:18px}
+.chat-h{background:var(--deep)}
+/* Tombol melayang: kotak membulat, tanpa animasi */
+.fab{width:54px;height:54px;border-radius:16px;border:0;animation:none!important;box-shadow:0 8px 20px rgba(12,59,61,.24)}
+.fab svg{width:22px;height:22px}.fab span:last-child{font-size:7px;letter-spacing:.04em}
+.fab .ico{display:grid;place-items:center}
+.fab.ai{background:var(--pri)}.fab.lens{background:#26373a}.fab.dengar{background:#3f7d5a}#astas-fab{background:#b45309}
+#astas-fab.on,.fab.dengar.speaking{animation:none!important}#astas-fab.on{background:#c2410c;box-shadow:0 0 0 5px rgba(194,65,12,.22)}
+#astas-box{border-color:var(--pri);border-radius:14px}
