@@ -430,6 +430,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(!raw){ say('Ya, saya mendengarkan.'); return; }
     $('astas-in').value = raw;
     const t = fixT(N(raw));
+    if(/^(tentang|info aplikasi)/.test(t)){ astasAbout(true); say('Ini informasi tentang aplikasi.'); return; }
     if(/^(bantuan|panduan suara|perintah suara|cara pakai|apa yang bisa|apa saja yang bisa)/.test(t)){ astasHelp(true); say('Ini daftar perintah suara. Ketuk salah satu contoh untuk mencobanya.'); return; }
     if(camStream && /ambil|jepret|foto|potret|capture/.test(t)){ lensShot(); return; }
     if(camStream && /batal|tutup|kembali/.test(t)){ lensClose(); say('Kamera ditutup.'); return; }
@@ -441,7 +442,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(/ambil foto|kamera|jepret|potret/.test(t)){ try{ closeLensChooser(); }catch(e){} lensOpen(); return; }
     if(/iwak lens|\blens\b|foto|gambar/.test(t)){ openLensChooser(); say('Iwak Lens dibuka. Ucapkan ambil foto untuk kamera, atau ketuk Upload dari Galeri.'); return; }
     if(/dengar|bacakan|baca jawaban/.test(t)){ bacakanJawaban(); return; }
-    if(/^(tutup|keluar)/.test(t)){ astasHelp(false); lensClose(); tutupModal(); toggleChat(false); astasClose(); return; }
+    if(/^(tutup|keluar)/.test(t)){ astasAbout(false); astasHelp(false); lensClose(); tutupModal(); toggleChat(false); astasClose(); return; }
     if(/^(buka |bukakan |tampilkan )?(iwak ai|chat)$/.test(t)){ toggleChat(true); say('Iwak AI dibuka. Silakan sebutkan pertanyaanmu.'); return; }
     if(document.body.classList.contains('chat-open') && !NAV.test(t) && !/^(tanya|tanyakan)/.test(t)){ quickAsk(raw); return; }
     const tanya = t.match(/^(?:tanya|tanyakan)(?: iwak ai| ke iwak ai)?\s+(.+)/);
@@ -596,4 +597,29 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
   [['.fab.ai','fish'],['.fab.lens','cam'],['#astas-fab','mic']].forEach(function(x){ var f = document.querySelector(x[0]), sp = f && f.querySelector('span'); if(sp){ sp.className = 'ico'; sp.style.fontSize = ''; sp.innerHTML = svg(x[1]); } });
   var li = document.getElementById('listen-icon');
   if(li){ li.style.display = 'none'; li.insertAdjacentHTML('beforebegin', '<span class="ico">' + svg('spk') + '</span>'); }
+
+  /* --- Footer dipindah ke jendela "Tentang"; emoji di banner diganti ikon; warna bilah browser --- */
+  P.info = '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>';
+  var small = function(n){ return svg(n).replace('<svg ', '<svg style="width:16px;height:16px;vertical-align:-3px;margin-right:6px" '); };
+  var h2 = document.querySelector('.hero h2'); if(h2) h2.innerHTML = h2.innerHTML.replace(/\s*(\uD83D\uDC4B|&#128075;)\s*/, '');
+  var hb2 = document.querySelectorAll('.hero-btns .btn-w');
+  if(hb2[0]) hb2[0].innerHTML = small('fish') + 'Tanya Iwak AI';
+  if(hb2[1]) hb2[1].innerHTML = small('cam') + 'Iwak Lens';
+  var tc = document.querySelector('meta[name=theme-color]'); if(tc) tc.setAttribute('content', '#0c3b3d');
+  var foot = document.querySelector('.foot'); if(foot) foot.style.display = 'none';
+  var ab = document.createElement('div'); ab.className = 'modal hidden'; ab.id = 'astas-about';
+  ab.onclick = function(e){ if(e.target === ab) astasAbout(false); };
+  ab.innerHTML = '<div class="mbox" style="max-width:420px"><div class="mh"><span>TENTANG APLIKASI</span><button class="ibtn" aria-label="Tutup" onclick="astasAbout(false)">\u2715</button></div>' +
+    '<div class="mc" style="text-align:center"><div style="color:#0f5c5c;display:grid;place-items:center">' + svg('fish').replace('<svg ', '<svg style="width:46px;height:46px" ') + '</div>' +
+    '<div style="font-family:Bricolage Grotesque,Inter,sans-serif;font-weight:800;font-size:19px;color:#12201f;margin:8px 0 2px">Smart Fish Farmer</div>' +
+    '<div style="font-weight:700;color:#0f766e;margin-bottom:12px">with ASTAS</div>' +
+    '<div style="font-size:13px;color:#5c6b69;line-height:1.7">Aplikasi hitung, diagnosa, dan pencatatan budidaya ikan air tawar dengan asisten suara.<br><b style="color:#12201f">Developed by ECOSYSTEM FISHERY\u00AE</b><br>Agribisnis Perikanan Air Tawar \u00B7 SMKN 1 Plosoklaten Kediri<br>Versi uji coba \u00B7 \u00A9 2026</div></div>' +
+    '<div class="mf"><button style="background:#0f5c5c" onclick="astasAbout(false);openTutorial()">PANDUAN</button><button style="background:#26373a" onclick="astasAbout(false);astasHelp(true)">PERINTAH SUARA</button></div></div>';
+  document.body.appendChild(ab);
+  window.astasAbout = function(open){ ab.classList.toggle('hidden', !open); };
+  var hb3 = document.getElementById('astas-helpbtn');
+  if(hb3 && hb3.parentNode){
+    var ib = document.createElement('button'); ib.className = 'ibtn'; ib.title = 'Tentang'; ib.setAttribute('aria-label', 'Tentang'); ib.innerHTML = svg('info'); ib.onclick = function(){ astasAbout(true); };
+    hb3.parentNode.insertBefore(ib, hb3);
+  }
 })();
