@@ -86,10 +86,10 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
 
   const TAB = [['home',/beranda|halaman utama|\bhome\b/],['hitung',/hitung|kalkulator/],['penyakit',/penyakit|diagnosa|diagnosis|gejala/],
     ['pakan',/pakan|formulasi|racik/],['cuan',/cuan|untung|laba|rugi/],['edukasi',/edukasi|belajar|materi/]];
-  const CAL = [['pakan-h',/pakan harian|kebutuhan pakan/],['pakan-induk',/pakan induk/],['abw',/\babw\b|berat rata/],['biomassa',/biomassa/],
+  const CAL = [['pakan-h',/pakan harian|kebutuhan pakan/],['pakan-induk',/pakan induk/],['abw',/\babw\b|berat rata|berat badan rata|average body|rata rata berat/],['biomassa',/biomassa/],
     ['fcr',/\bfcr\b|konversi pakan/],['sr',/survival|\bsr\b|kelangsungan/],['adg',/\badg\b|pertumbuhan harian/],['sgr',/\bsgr\b|laju pertumbuhan/],
     ['vol',/volume/],['padat-induk',/kapasitas kolam|kolam induk/],['padat',/padat tebar/],['air',/kualitas air/],
-    ['ovaprim',/ovaprim|hormon|ovaspec|ovagold/],['fekun',/fekunditas/],['hr',/hatching|daya tetas|\bhr\b/],['fr',/fertilization|pembuahan|\bfr\b/],
+    ['ovaprim',/ovaprim|hormon|ovaspec|ovagold/],['fekun',/fekunditas/],['hr',/hatching|daya tetas|penetasan|\bhr\b/],['fr',/fertilization|pembuahan|\bfr\b/],
     ['wadah',/kapasitas wadah/],['obat',/dosis obat/],['packing',/packing/],['jantan-stimulan',/jantan|stimulan/],
     ['pijah-ulang',/pijah kembali|pijah ulang|jadwal pijah/],['jam-suntik',/waktu suntik|jam suntik|laten/],
     ['prediksi-telur',/prediksi telur|estimasi telur/],['total-larva',/total larva|produksi larva|prediksi larva/]];
@@ -121,7 +121,9 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     return m[a.length][b.length]; };
   /* Koreksi salah dengar yang umum (ADG jadi ABG, dll) */
   const FIX = [[/\b(abg|adji|adi ji|ad ge|adi ge|adegan|ade ge)\b/g,'adg'],[/\b(ef si er|efsier|ef se er|efcer)\b/g,'fcr'],
-    [/\b(es ge er|esgeer|es je er|sjr)\b/g,'sgr'],[/\b(abe we|abwe|ab we)\b/g,'abw'],[/\b(es er)\b/g,'sr'],[/\b(ha er)\b/g,'hr'],[/\b(iwak|ivak|iwa|ibak|ikan) ?(ai|ay|ei|e i)\b/g,'iwak ai'],[/\b(iwak|ivak|iwa|ibak) (lensa|lenz|lens)\b/g,'iwak lens']];
+    [/\b(es ge er|esgeer|es je er|sjr)\b/g,'sgr'],[/\b(abe we|abwe|ab we)\b/g,'abw'],[/\b(es er)\b/g,'sr'],[/\b(ha er)\b/g,'hr'],[/\b(iwak|ivak|iwa|ibak|ikan) ?(ai|ay|ei|e i)\b/g,'iwak ai'],[/\b(iwak|ivak|iwa|ibak) (lensa|lenz|lens)\b/g,'iwak lens'],
+    [/\b(a be we|abewe|abew|abuwe|abu|ab w)\b/g,'abw'],[/\b(pekunditas|vekunditas|fekonditas|fekundita|fekundias|fekunditaz|fekondias)\b/g,'fekunditas'],
+    [/\b(hacing|hatsing|haching|hecing|heching|hating|hatcing)( rate| reit| ret| rete)?\b/g,'hatching rate']];
   const fixT = t => FIX.reduce((x,[r,w]) => x.replace(r,w), t);
 
   /* Cari rumus dengan kemiripan kata (toleran salah dengar) */
@@ -131,7 +133,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     CALCS.forEach(c => {
       const nm = N(c.nama).split(' ').filter(w => w.length >= 3 && !/^(dan|rate|body|weight|average)$/.test(w));
       let sc = 0;
-      nm.forEach(n => { if(ws.some(w => w === n || (n.length >= 5 && lev(w,n) <= 1) || (n.length === 3 && w.length === 3 && lev(w,n) <= 1))) sc++; });
+      nm.forEach(n => { if(ws.some(w => w === n || (n.length >= 5 && lev(w,n) <= (n.length >= 8 ? 2 : 1)) || (n.length === 3 && w.length === 3 && lev(w,n) <= 1))) sc++; });
       if(sc > bs){ bs = sc; best = c.id; tie = false; } else if(sc === bs && sc > 0) tie = true;
     });
     return (bs >= 1 && !tie) ? best : null;
@@ -309,7 +311,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
   }
 
   /* ===== TAB CATAT (ASTAS pencatatan, dimuat dari catat.html di halaman yang sama) ===== */
-  const CATAT_START = /^(catat|catatan|daftarkan|sampling|mulai batch|pindahkan benih|ingatkan|buat pengingat|laba rugi|kondisi kolam|performa kolam|bagaimana (batch|kondisi)|cek peringatan|kegiatan saya|(buka |tampilkan )?(dashboard|siklus|hitung ikan))/;
+  const CATAT_START = /^(catat|catatan|daftarkan|sampling kolam|mulai batch|pindahkan benih|ingatkan|buat pengingat|laba rugi|kondisi kolam|performa kolam|bagaimana (batch|kondisi)|cek peringatan|kegiatan saya|(buka |tampilkan )?(dashboard|siklus|hitung ikan))/;
   (function(){
     const nav = document.getElementById('nav'), wrap = document.querySelector('#main .wrap');
     if(!nav || !wrap || document.getElementById('sec-catat')) return;
@@ -379,7 +381,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
   /* ===== PANDUAN PERINTAH SUARA + NAMA APLIKASI ===== */
   const HELP = [
     ['Pindah menu', ['buka hitung','buka penyakit lele bintik putih','buka pakan','buka cuan','buka edukasi','buka catat']],
-    ['Kalkulator', ['buka FCR','pakan lima puluh panen empat puluh','rumus nomor enam','hitung','kembali']],
+    ['Kalkulator', ['buka ABW','buka hatching rate','buka fekunditas','buka FCR','pakan lima puluh panen empat puluh','rumus nomor enam','hitung','kembali']],
     ['Pakan mandiri', ['tambah tepung ikan lokal dan bungkil kedelai','target protein tiga puluh total seratus kilo hitung']],
     ['Cuan', ['harga dua puluh lima ribu populasi lima ribu bobot seratus lima puluh gram','biaya pakan tiga juta hitung']],
     ['Edukasi', ['buka kultur daphnia','buka hama dan penyakit larva']],
@@ -470,7 +472,9 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(calcOpen() && /^(kembali|daftar)/.test(t)){ closeCalc(); say('Kembali ke daftar rumus.'); return; }
 
     /* FOKUS: selama rumus terbuka, semua ucapan dianggap isian rumus itu, kecuali ada kata perintah pindah */
-    const pindah = NAV.test(t) || (calX && calX[0] !== currentType);
+    const kolomKata = calcOpen() ? [...document.querySelectorAll('#calc-inputs label')].reduce((a, l) => a.concat(N(l.textContent).split(' ')), []).filter(w => w.length >= 3) : [];
+    const sebutKolom = kolomKata.some(w => t.includes(w));
+    const pindah = NAV.test(t) || (calX && calX[0] !== currentType && !sebutKolom);
     if(calcOpen() && !pindah){
       if(/^(hitung|proses|hasil)\b/.test(t) && !/\d/.test(raw)){ calculateNow(); say($('calc-res').textContent); return; }
       fillCalc(raw); return;
