@@ -1,7 +1,7 @@
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
 /* ===== SHIM: menggantikan google.script.run agar app bisa jalan di GitHub Pages ===== */
 (function(){
-  var EXEC_URL = 'https://script.google.com/macros/s/AKfycbxiywEW0OFsOvtyD_fTs-kB22wZXvBH8aCOkVWcZ7vLiyZsSZmq50rly4wGwc7POYgYUA/exec';
+  var EXEC_URL = 'PASTE_LINK_EXEC_DISINI';
   try{ if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)) EXEC_URL = localStorage.getItem('sff_exec') || ''; }catch(e){}
   if(!/^https:\/\/script\.google\.com\/.+\/exec$/.test(EXEC_URL)){
     EXEC_URL = (prompt('Tempel link aplikasi (berakhiran /exec):') || '').trim();
@@ -82,6 +82,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     }catch(e){ micMsg(false); }
   };
   const say = t => { status(t); tell(t); };
+  window.__astasSay = say;
 
   const TAB = [['home',/beranda|halaman utama|\bhome\b/],['hitung',/hitung|kalkulator/],['penyakit',/penyakit|diagnosa|diagnosis|gejala/],
     ['pakan',/pakan|formulasi|racik/],['cuan',/cuan|untung|laba|rugi/],['edukasi',/edukasi|belajar|materi/]];
@@ -384,7 +385,8 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     ['Edukasi', ['buka kultur daphnia','buka hama dan penyakit larva']],
     ['Iwak AI dan Iwak Lens', ['buka Iwak AI','tanya cara memijahkan lele','buka Iwak Lens','ambil foto','dari galeri','bacakan jawaban']],
     ['Catat dengan ASTAS', ['catat pakan kolam 1 sebanyak 2 kilogram','daftarkan kolam 1 lele 2000 ekor bobot awal 5 gram','kondisi kolam saya','buka dashboard','laba rugi saya','ya','tidak']],
-    ['Simpan hasil hitung', ['simpan ke catatan kolam 1']]
+    ['Simpan hasil hitung', ['simpan ke catatan kolam 1']],
+    ['Masukan', ['kirim masukan']]
   ];
   window.astasHelp = function(open){
     let m = document.getElementById('astas-help');
@@ -430,6 +432,14 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     if(!raw){ say('Ya, saya mendengarkan.'); return; }
     $('astas-in').value = raw;
     const t = fixT(N(raw));
+    const fbm = document.getElementById('astas-fb');
+    if(fbm && !fbm.classList.contains('hidden')){
+      if(/^(kirim|kirim masukan|simpan)$/.test(t)) astasFbSend();
+      else if(/^(batal|tutup)/.test(t)){ astasFb(false); say('Masukan dibatalkan.'); }
+      else { const ta = document.getElementById('fb-t'); ta.value = (ta.value + ' ' + raw).trim(); status('Ditambahkan ke masukan. Ucapkan "kirim" untuk mengirim, atau "batal".'); }
+      return;
+    }
+    if(/^(kirim masukan|masukan|saran|laporkan masalah)$/.test(t)){ astasFb(true); say('Silakan sebutkan masukanmu, lalu katakan kirim.'); return; }
     if(/^(tentang|info aplikasi)/.test(t)){ astasAbout(true); say('Ini informasi tentang aplikasi.'); return; }
     if(/^(bantuan|panduan suara|perintah suara|cara pakai|apa yang bisa|apa saja yang bisa)/.test(t)){ astasHelp(true); say('Ini daftar perintah suara. Ketuk salah satu contoh untuk mencobanya.'); return; }
     if(camStream && /ambil|jepret|foto|potret|capture/.test(t)){ lensShot(); return; }
@@ -614,9 +624,71 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catc
     '<div style="font-family:Bricolage Grotesque,Inter,sans-serif;font-weight:800;font-size:19px;color:#12201f;margin:8px 0 2px">Smart Fish Farmer</div>' +
     '<div style="font-weight:700;color:#0f766e;margin-bottom:12px">with ASTAS</div>' +
     '<div style="font-size:13px;color:#5c6b69;line-height:1.7">Aplikasi hitung, diagnosa, dan pencatatan budidaya ikan air tawar dengan asisten suara.<br><b style="color:#12201f">Developed by ECOSYSTEM FISHERY\u00AE</b><br>Agribisnis Perikanan Air Tawar \u00B7 SMKN 1 Plosoklaten Kediri<br>Versi uji coba \u00B7 \u00A9 2026</div></div>' +
-    '<div class="mf"><button style="background:#0f5c5c" onclick="astasAbout(false);openTutorial()">PANDUAN</button><button style="background:#26373a" onclick="astasAbout(false);astasHelp(true)">PERINTAH SUARA</button></div></div>';
+    '<div class="mf"><button style="background:#0f5c5c" onclick="astasAbout(false);openTutorial()">PANDUAN</button><button style="background:#26373a" onclick="astasAbout(false);astasHelp(true)">SUARA</button><button style="background:#b45309" onclick="astasAbout(false);astasFb(true)">MASUKAN</button></div></div>';
   document.body.appendChild(ab);
   window.astasAbout = function(open){ ab.classList.toggle('hidden', !open); };
+
+  /* --- Masukan pengguna, tur pertama kali, pemanasan server --- */
+  var cid = function(){ var c = ''; try{ c = localStorage.getItem('sff_cid') || ''; if(!c){ c = Math.random().toString(36).slice(2, 12); localStorage.setItem('sff_cid', c); } }catch(e){ c = 'x'; } return c; };
+  var say2 = function(t){ if(window.__astasSay) window.__astasSay(t); };
+  var IN = 'width:100%;padding:10px;border:1px solid #d8d3c4;border-radius:10px;font:inherit;margin-bottom:8px;box-sizing:border-box;background:#fff';
+  var fb = document.createElement('div'); fb.className = 'modal hidden'; fb.id = 'astas-fb';
+  fb.onclick = function(e){ if(e.target === fb) astasFb(false); };
+  fb.innerHTML = '<div class="mbox" style="max-width:460px"><div class="mh"><span>KIRIM MASUKAN</span><button class="ibtn" aria-label="Tutup" onclick="astasFb(false)">\u2715</button></div>' +
+    '<div class="mc"><p style="margin:0 0 10px;font-size:13px;color:#5c6b69">Ada yang membingungkan, rusak, atau ingin ditambah? Tulis di sini, atau ucapkan lewat ASTAS lalu katakan "kirim".</p>' +
+    '<select id="fb-j" style="' + IN + '"><option>Saran</option><option>Masalah</option><option>Pertanyaan</option></select>' +
+    '<input id="fb-n" placeholder="Nama (boleh kosong)" style="' + IN + '">' +
+    '<textarea id="fb-t" rows="5" placeholder="Tulis masukanmu..." style="' + IN + ';resize:vertical"></textarea><div id="fb-s" style="font-size:13px;font-weight:600;color:#0f5c5c;min-height:18px"></div></div>' +
+    '<div class="mf"><button style="background:#64748b" onclick="astasFb(false)">BATAL</button><button id="fb-send" style="background:#0f5c5c" onclick="astasFbSend()">KIRIM</button></div></div>';
+  document.body.appendChild(fb);
+  window.astasFb = function(open){
+    if(open){ try{ var n = document.getElementById('fb-n'); if(!n.value) n.value = localStorage.getItem('astas_nama') || ''; }catch(e){} document.getElementById('fb-s').textContent = ''; }
+    fb.classList.toggle('hidden', !open);
+  };
+  window.astasFbSend = function(){
+    var t = document.getElementById('fb-t').value.trim(), st = document.getElementById('fb-s'), bt = document.getElementById('fb-send');
+    if(!t){ st.textContent = 'Tulis masukan dulu.'; return; }
+    var tab = ((document.querySelector('#nav button.on') || {}).dataset || {}).s || '';
+    bt.disabled = true; st.textContent = 'Mengirim...';
+    google.script.run.withSuccessHandler(function(r){ st.textContent = r; document.getElementById('fb-t').value = ''; bt.disabled = false; say2('Terima kasih, masukanmu terkirim.'); setTimeout(function(){ astasFb(false); }, 1600); })
+      .withFailureHandler(function(e){ st.textContent = e.message || 'Gagal mengirim. Coba lagi.'; bt.disabled = false; })
+      .sendFeedback({ nama: document.getElementById('fb-n').value, jenis: document.getElementById('fb-j').value, pesan: t, tab: tab, cid: cid(), ua: navigator.userAgent });
+  };
+
+  var TOUR = [
+    ['Selamat datang', 'Satu aplikasi untuk menghitung, mendiagnosa penyakit, dan mencatat kolam. Semuanya bisa lewat suara.'],
+    ['Bicara dengan ASTAS', 'Tombol ASTAS berwarna merah berarti sedang mendengarkan. Izinkan mikrofon saat diminta. Di tempat bising, ketuk tombolnya untuk mematikan.'],
+    ['Coba sekarang', 'Ketuk satu perintah di bawah untuk melihat hasilnya.']
+  ];
+  var tour = document.createElement('div'); tour.className = 'modal hidden'; tour.id = 'astas-tour'; tour.style.zIndex = 300;
+  tour.innerHTML = '<div class="mbox" style="max-width:420px"><div class="mc" style="text-align:center;padding:26px 22px 8px"><div id="tr-i" style="color:#0f5c5c;display:grid;place-items:center"></div>' +
+    '<div id="tr-t" style="font-family:Bricolage Grotesque,Inter,sans-serif;font-weight:800;font-size:20px;color:#12201f;margin:10px 0 6px"></div><div id="tr-x" style="font-size:14px;color:#475569;line-height:1.6"></div>' +
+    '<div id="tr-c" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px"></div><div id="tr-d" style="margin-top:16px"></div></div>' +
+    '<div class="mf"><button id="tr-s" style="background:#64748b">LEWATI</button><button id="tr-n" style="background:#0f5c5c;flex:2">LANJUT</button></div></div>';
+  document.body.appendChild(tour);
+  window.astasTour = function(i){
+    if(i === false){ tour.classList.add('hidden'); try{ localStorage.setItem('sff_tour', '1'); }catch(e){} return; }
+    var last = i === TOUR.length - 1, icons = ['fish', 'mic', 'mic'];
+    document.getElementById('tr-i').innerHTML = svg(icons[i]).replace('<svg ', '<svg style="width:44px;height:44px" ');
+    document.getElementById('tr-t').textContent = TOUR[i][0]; document.getElementById('tr-x').textContent = TOUR[i][1];
+    var c = document.getElementById('tr-c'); c.textContent = '';
+    if(last){ ['buka hitung', 'buka penyakit lele bintik putih', 'buka edukasi'].forEach(function(x){
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = x; b.style.cssText = 'border:1px solid #c7d2fe;background:#eef2ff;color:#312e81;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600';
+      b.onclick = function(){ astasTour(false); astasRun(x); }; c.appendChild(b); }); }
+    document.getElementById('tr-d').innerHTML = TOUR.map(function(_, k){ return '<span style="display:inline-block;height:6px;border-radius:3px;margin:0 3px;background:' + (k === i ? '#0f5c5c' : '#d8d3c4') + ';width:' + (k === i ? 20 : 6) + 'px"></span>'; }).join('');
+    document.getElementById('tr-n').textContent = last ? 'MULAI' : 'LANJUT';
+    document.getElementById('tr-s').style.display = last ? 'none' : '';
+    document.getElementById('tr-n').onclick = function(){ if(last) astasTour(false); else astasTour(i + 1); };
+    document.getElementById('tr-s').onclick = function(){ astasTour(false); };
+    tour.classList.remove('hidden');
+  };
+  var seenTour = false; try{ seenTour = !!localStorage.getItem('sff_tour'); }catch(e){}
+  if(!seenTour){
+    try{ localStorage.setItem('sff_tutorial_seen', '1'); }catch(e){}
+    var t0 = setInterval(function(){ if(!document.getElementById('app-loading')){ clearInterval(t0); setTimeout(function(){ astasTour(0); }, 500); } }, 400);
+  }
+  try{ google.script.run.ping(); }catch(e){}
+
   var hb3 = document.getElementById('astas-helpbtn');
   if(hb3 && hb3.parentNode){
     var ib = document.createElement('button'); ib.className = 'ibtn'; ib.title = 'Tentang'; ib.setAttribute('aria-label', 'Tentang'); ib.innerHTML = svg('info'); ib.onclick = function(){ astasAbout(true); };
